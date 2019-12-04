@@ -1,0 +1,113 @@
+---
+title: "Final_Project"
+author: "Kendra Ferrier"
+date: "November 20, 2019"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(ggplot2)
+library(dplyr)
+library(tidyr)
+library(car)
+library(sjPlot)
+```
+
+Import Data:
+```{r}
+# Import data from course canvas website
+moles <- read.csv("https://ucdenver.instructure.com/courses/421765/files/9196715/download?wrap=1")
+
+# Select only the columns needed for analysis, remove individuals with missing data, add a column with the difference between mole counts from 2004 to 2008, and change the name of oca2.status to "genotype", where 0 = gg, 1 = ga, 2 = aa. Gender; 1 = Female, 2 = Male.
+moles <- moles %>% 
+  select(oca2.status, gender, hispanic, molecount2004, molecount2008, number.vacs..birth.thru.2007) %>% 
+  drop_na() %>% 
+  mutate(mole_diff = (molecount2008 - molecount2004)) %>% 
+  rename("genotype" = oca2.status) %>% 
+  rename("n_vacations" = number.vacs..birth.thru.2007)
+```
+
+Table 1:
+```{r}
+# Create a summary table of the moles cohort
+moles_summary <- moles %>% 
+  select(as.factor(moles$genotype), gender, hispanic, n_vacations, mole_diff) %>%  # select only the rows needed for presenting
+  mutate(gender = case_when(
+    gender == 1 ~ "F",
+    gender == 2 ~ "M"
+  )) %>%  # switch the dummy variables for more descriptive names
+  mutate(hispanic = case_when(
+    hispanic == 1 ~ "Y",
+    hispanic == 0 ~ "N"
+  )) %>% # switch the dummy variables for more descriptive names
+  mutate(genotype = case_when(
+    genotype == 0 ~ "gg",
+    genotype == 1 ~ "ga",
+    genotype == 2 ~ "aa"
+  )) %>% # switch the dummy variables for more descriptive names
+  group_by(genotype, hispanic, gender) %>% # create groups for each unique combination of categorical variables
+  summarize(
+    n = n(), # count the number of members in each group
+    "mean vacations" = mean(n_vacations), # calculate the mean number of vacations for each group
+    "sd vacations" = sd(n_vacations), # calculate the sd of vacations for each group
+    "mean mole difference" = mean(mole_diff), # calculate the mean number of difference in moles for each group
+    "sd mole difference" = sd(mole_diff) # calculate the sd of difference in moles for each group
+    ) 
+
+# print the summary table in a publishing ready format
+tab_df(moles_summary, title = "Summary of Moles Cohort", alternate.rows = T,
+       file = "Moles_Summary_tbl.html")
+```
+
+Linear Modeling:
+```{r}
+# Simple linear regression to assess if OCA2 status is associated with number of moles developed between ages 6 and 10
+# Crude Model
+crude_lm <- lm(data = moles, formula = mole_diff ~ factor(genotype))
+
+crude_summary <- summary(crude_lm)$coefficients
+rownames(crude_summary) <- c("gg", "ga", "aa") #change rownames for ease of reading the summary
+crude_summary
+
+# Multiple linear regression model of mole differences explained by OCA2 status adjusted for gender, hispanic status, and number of seaside vacations through 2007.
+adj_lm <- lm(data = moles, formula = mole_diff ~ factor(genotype) + factor(gender) + factor(hispanic) + n_vacations)
+
+adj_summary <- summary(adj_lm)$coefficients
+rownames(adj_summary) <- c("gg", "ga", "aa", "Male", "Hispanic", "n vacations") # change rownames for ease of reading the summary
+adj_summary
+
+# calculate precision of crude vs adjusted model using the biostatistician method.
+# crude_intercept <- crude_summary[1,1]
+# adj_intercept <- adj_summary[1,1]
+# 
+# ((crude_intercept-adj_intercept)/crude_intercept)*100
+#18.87988% differnce between the crude and adjusted model
+```
+
+Bootstrap Regression:
+```{r}
+## Bootstrap distributions for each genotype and covariate using the adjusted model. 
+B <- 10^4 # number of bootstrap iterations
+
+set.seed(569) 
+adj_boot <- Boot(adj_lm, f = coef, R = B, method = c("case"))
+
+adj_boot_summary <- summary(adj_boot, high.moments = T)
+rownames(adj_boot_summary) <- c("gg", "ga", "aa", "gender", "hispanic", "n vacations") # change rownames for ease of reading the summary table
+adj_boot_summary
+
+# Calculate the 95% Confidence Interval for each genotype and covariate based on bias-corrected and accelerated (BCa) bootstrap interval.
+adj_boot_CI <- Confint(adj_boot, level = .95, type = "bca", adj.r2 = T) 
+adj_boot_CI
+
+# Calculate the intercept values for each genotype
+boot_gg <- adj_boot_summary$original[1]
+boot_ga <- boot_gg + adj_boot_summary$original[2]
+boot_aa <- boot_gg + adj_boot_summary$original[3]
+
+# Histograms of each bootstrap distribution with bias-corrected and accelterated confidence intervals. Intecept = genotype 'gg', factor(geno)
+hist(adj_boot, main = "Bootstrap distributions")
+
+```
+
