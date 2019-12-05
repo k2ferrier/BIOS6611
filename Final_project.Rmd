@@ -106,8 +106,28 @@ boot_gg <- adj_boot_summary$original[1]
 boot_ga <- boot_gg + adj_boot_summary$original[2]
 boot_aa <- boot_gg + adj_boot_summary$original[3]
 
-# Histograms of each bootstrap distribution with bias-corrected and accelterated confidence intervals. Intecept = genotype 'gg', factor(geno)
+# Histograms of each bootstrap distribution with bias-corrected and accelterated confidence intervals. Intercept = genotype 'gg', factor(geno). Plot was exported as a pnj for further editing in Microsoft Powerpoint.
 hist(adj_boot, main = "Bootstrap distributions")
+```
 
+Summary Tables for Report:
+```{r}
+# Summary table of the bootstrap regression
+tbl_2 <- as.data.frame(adj_boot_summary)
+tbl_2 <- tbl_2 %>% 
+  mutate("Coefficients" = c("gg (intercept)", "ga", "aa", "gender", "hispanic", "n vacations")) %>% 
+  select(Coefficients , original, bootBias, bootSE, bootMed, bootSkew, bootKurtosis) %>% 
+  rename("Estimated moles" = original)
+tab_df(tbl_2, title = "Summary of Bootstrap Regression", alternate.rows = T,
+       file = "Boot_Summary_tbl.html") 
+
+# Summary table of the bootstrap confidence intervals
+tbl_3 <- as.data.frame(adj_boot_CI)
+tbl_3 <- tbl_3 %>% 
+  mutate("Coefficients" = c("gg (intercept)", "ga", "aa", "gender", "hispanic", "n vacations")) %>% 
+  select(Coefficients , Estimate, `2.5 %`, `97.5 %`) %>% 
+  rename("Estimated moles" = Estimate)
+tab_df(tbl_3, title = "Bootstrap Confidence Intervals", alternate.rows = T,
+       file = "Boot_CI_tbl.html") 
 ```
 
