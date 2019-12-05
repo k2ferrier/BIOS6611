@@ -115,8 +115,8 @@ Summary Tables for Report:
 # Summary table of the bootstrap regression
 tbl_2 <- as.data.frame(adj_boot_summary)
 tbl_2 <- tbl_2 %>% 
-  mutate("Coefficients" = c("gg (intercept)", "ga", "aa", "gender", "hispanic", "n vacations")) %>% 
-  select(Coefficients , original, bootBias, bootSE, bootMed, bootSkew, bootKurtosis) %>% 
+  mutate("Coefficients" = c("gg (intercept)", "ga", "aa", "Male", "Hispanic", "n vacations")) %>% 
+  select(Coefficients , original, bootBias, bootSE, bootMed) %>% 
   rename("Estimated moles" = original)
 tab_df(tbl_2, title = "Summary of Bootstrap Regression", alternate.rows = T,
        file = "Boot_Summary_tbl.html") 
@@ -127,7 +127,13 @@ tbl_3 <- tbl_3 %>%
   mutate("Coefficients" = c("gg (intercept)", "ga", "aa", "gender", "hispanic", "n vacations")) %>% 
   select(Coefficients , Estimate, `2.5 %`, `97.5 %`) %>% 
   rename("Estimated moles" = Estimate)
-tab_df(tbl_3, title = "Bootstrap Confidence Intervals", alternate.rows = T,
-       file = "Boot_CI_tbl.html") 
+
+# Combined summary of Bootstrap Regression and CIs
+combined_summary <- tbl_2 %>% 
+  mutate("CI: 2.5%" = tbl_3$`2.5 %`) %>% 
+  mutate("CI: 97.5%" = tbl_3$`97.5 %`)
+
+tab_df(combined_summary, title = "Bootstrap Regression Summary", alternate.rows = T,
+       file = "Boot_Summary_tbl_2.html") 
 ```
 
