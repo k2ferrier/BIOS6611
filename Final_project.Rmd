@@ -94,7 +94,7 @@ set.seed(569)
 adj_boot <- Boot(adj_lm, f = coef, R = B, method = c("case"))
 
 adj_boot_summary <- summary(adj_boot, high.moments = T)
-rownames(adj_boot_summary) <- c("gg", "ga", "aa", "gender", "hispanic", "n vacations") # change rownames for ease of reading the summary table
+rownames(adj_boot_summary) <- c("gg", "ga", "aa", "Male", "Hispanic", "n vacations") # change rownames for ease of reading the summary table
 adj_boot_summary
 
 # Calculate the 95% Confidence Interval for each genotype and covariate based on bias-corrected and accelerated (BCa) bootstrap interval.
@@ -124,7 +124,7 @@ tab_df(tbl_2, title = "Summary of Bootstrap Regression", alternate.rows = T,
 # Summary table of the bootstrap confidence intervals
 tbl_3 <- as.data.frame(adj_boot_CI)
 tbl_3 <- tbl_3 %>% 
-  mutate("Coefficients" = c("gg (intercept)", "ga", "aa", "gender", "hispanic", "n vacations")) %>% 
+  mutate("Coefficients" = c("gg (intercept)", "ga", "aa", "Male", "Hispanic", "n vacations")) %>% 
   select(Coefficients , Estimate, `2.5 %`, `97.5 %`) %>% 
   rename("Estimated moles" = Estimate)
 
